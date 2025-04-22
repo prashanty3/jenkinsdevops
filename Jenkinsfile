@@ -30,9 +30,6 @@ pipeline {
                 script {
                     // Stop and remove the container if it already exists
                     sh "docker ps -aqf 'name=${CONTAINER_NAME}' | xargs -r docker rm -f"
-
-                    // Run the container interactively
-                    sh "docker run -it --name ${CONTAINER_NAME} ${IMAGE_NAME}"
                 }
             }
         }
