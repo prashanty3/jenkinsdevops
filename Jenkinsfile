@@ -25,28 +25,23 @@ pipeline {
             }
         }
 
-        stage('Run Container Locally') {
+        stage('Run Container Interactively') {
             steps {
                 script {
                     // Stop and remove the container if it already exists
                     sh "docker ps -aqf 'name=${CONTAINER_NAME}' | xargs -r docker rm -f"
 
-                    // Run the container in detached mode on port 8081
-                    sh "docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}"
+                    // Run the container interactively
+                    sh "docker run -it --name ${CONTAINER_NAME} ${IMAGE_NAME}"
                 }
             }
         }
 
-        stage('Push to Docker Hub') {
+        stage('Run Container Detached') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    script {
-                        sh '''
-                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                            docker push ${IMAGE_NAME}
-                            docker push ${IMAGE_LATEST}
-                        '''
-                    }
+                script {
+                    // Run the container in detached mode on port 8081
+                    sh "docker run -d -p ${HOST_PORT}:${CONTAINER_PORT} --name ${CONTAINER_NAME} ${IMAGE_NAME}"
                 }
             }
         }
@@ -54,6 +49,7 @@ pipeline {
 
     post {
         always {
+            // Cleanup the container after the job completes
             sh "docker ps -aqf 'name=${CONTAINER_NAME}' | xargs -r docker rm -f"
             echo "🧹 Cleanup complete. Pipeline finished."
         }
