@@ -2,8 +2,11 @@ pipeline {
     agent any
 
     environment {
+        // Use your Docker Hub username as prefix for the image name
+        DOCKER_HUB_USERNAME = "prashanty3"
         // Dynamically set Docker image name using the Git commit ID
-        IMAGE_NAME = "my-static-site:${GIT_COMMIT}"
+        IMAGE_NAME = "${DOCKER_HUB_USERNAME}/my-static-site:${GIT_COMMIT}"
+        IMAGE_LATEST = "${DOCKER_HUB_USERNAME}/my-static-site:latest"
     }
 
     stages {
@@ -19,8 +22,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build the Docker image and tag it with the Git commit ID
-                    sh 'docker build -t $IMAGE_NAME .'
+                    // Build the Docker image and tag it with both Git commit ID and latest
+                    sh "docker build -t ${IMAGE_NAME} -t ${IMAGE_LATEST} ."
                 }
             }
         }
@@ -32,8 +35,8 @@ pipeline {
                     // Stop any existing container with the same name (optional)
                     sh 'docker rm -f static-site || true'
 
-                    // Run the container in detached mode on port 8080
-                    sh "docker run -d --name static-site -p 8090:80 $IMAGE_NAME"
+                    // Run the container in detached mode on port 8090
+                    sh "docker run -d --name static-site -p 8090:80 ${IMAGE_NAME}"
                 }
             }
         }
@@ -46,7 +49,8 @@ pipeline {
                         // Login to Docker Hub and push the image
                         sh '''
                             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                            docker push $IMAGE_NAME
+                            docker push ${IMAGE_NAME}
+                            docker push ${IMAGE_LATEST}
                         '''
                     }
                 }
@@ -58,6 +62,13 @@ pipeline {
         // Clean up: Remove container if something fails
         always {
             sh 'docker rm -f static-site || true'
+            echo "Pipeline completed"
+        }
+        success {
+            echo "✅ Build successful! Image pushed to Docker Hub as ${IMAGE_NAME}"
+        }
+        failure {
+            echo "❌ Build failed. Check the logs for details."
         }
     }
 }
