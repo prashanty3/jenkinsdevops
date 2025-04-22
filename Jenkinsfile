@@ -28,11 +28,8 @@ pipeline {
         stage('Run Container Interactively') {
             steps {
                 script {
-                    // Stop and remove any existing container with the same name
+                    // Stop and remove the container if it already exists
                     sh "docker ps -aqf 'name=${CONTAINER_NAME}' | xargs -r docker rm -f"
-
-                    // Run the image interactively to trigger any entrypoint scripts
-                    sh "docker run -it ${IMAGE_NAME} || true"
                 }
             }
         }
@@ -40,22 +37,8 @@ pipeline {
         stage('Run Container Detached') {
             steps {
                 script {
-                    // Run the container in detached mode and map ports
+                    // Run the container in detached mode on port 8081
                     sh "docker run -d -p ${HOST_PORT}:${CONTAINER_PORT} --name ${CONTAINER_NAME} ${IMAGE_NAME}"
-                }
-            }
-        }
-
-        stage('Push to Docker Hub') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    script {
-                        sh '''
-                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                            docker push ${IMAGE_NAME}
-                            docker push ${IMAGE_LATEST}
-                        '''
-                    }
                 }
             }
         }
@@ -67,9 +50,6 @@ pipeline {
         }
         failure {
             echo "❌ Build failed. Check logs for errors."
-
-            // Optional: Cleanup container only on failure
-            sh "docker ps -aqf 'name=${CONTAINER_NAME}' | xargs -r docker rm -f"
         }
     }
 }
