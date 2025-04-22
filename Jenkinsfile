@@ -33,7 +33,7 @@ pipeline {
                     sh 'docker rm -f static-site || true'
 
                     // Run the container in detached mode on port 8080
-                    sh 'docker run -d --name static-site -p 8080:80 $IMAGE_NAME'
+                    sh "docker run -d --name static-site -p 8090:80 $IMAGE_NAME"
                 }
             }
         }
